@@ -19,7 +19,7 @@ function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/get-transactions');
+      const res = await fetch('https://smart-note-gpay.onrender.com/api/get-transactions');
       const data = await res.json();
       setHistory(data);
 
@@ -41,7 +41,7 @@ function App() {
   const handleSave = async () => {
     if (!transaction.note || transaction.amount === "0") return alert("Details missing!");
     try {
-      const res = await fetch('http://localhost:5000/api/save-transaction', {
+      const res = await fetch('https://smart-note-gpay.onrender.com/api/save-transaction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(transaction)
@@ -55,7 +55,7 @@ function App() {
 
   const handleDelete = async (id) => {
     if (window.confirm("Delete this record?")) {
-      const res = await fetch(`http://localhost:5000/api/delete-transaction/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://smart-note-gpay.onrender.com/api/delete-transaction/${id}`, { method: 'DELETE' });
       if (res.ok) fetchHistory();
     }
   };

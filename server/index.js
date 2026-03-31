@@ -24,6 +24,10 @@ const transactionSchema = new mongoose.Schema({
 
 const Transaction = mongoose.model('Transaction', transactionSchema);
 
+app.get('/', (req, res) => {
+  res.send('Smart Note Gpay API is Live and Running... 🚀');
+});
+
 app.post('/api/save-transaction', async (req, res) => {
   try {
     const newTx = new Transaction(req.body);
