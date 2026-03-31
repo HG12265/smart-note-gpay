@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Device } from '@capacitor/device';
 import { 
   Wallet, 
   ArrowUpRight, 
@@ -16,6 +17,20 @@ function App() {
   const [transaction, setTransaction] = useState({ amount: "0", person: "Waiting...", type: "Paid", note: "" });
   const [history, setHistory] = useState([]);
   const [stats, setStats] = useState({ totalPaid: 0, totalReceived: 0, monthPaid: 0 });
+
+  // 1. Notification Parser Logic
+  const parseGPayNotification = (text) => {
+    const amountRegex = /[₹|Rs]\.?\s?(\d+(?:\.\d{1,2})?)/;
+    const nameRegex = /(?:paid to|sent to|to|from|towards)\s(.*?)(?:\sfor|\s₹|$|\.)/i;
+    const amountMatch = text.match(amountRegex);
+    const nameMatch = text.match(nameRegex);
+
+    return {
+      amount: amountMatch ? amountMatch[1] : "0",
+      person: nameMatch ? nameMatch[1].trim() : "Unknown",
+      type: text.toLowerCase().includes("received") || text.toLowerCase().includes("from") ? "Received" : "Paid"
+    };
+  };
 
   const fetchHistory = async () => {
     try {
@@ -36,7 +51,28 @@ function App() {
     } catch (err) { console.error(err); }
   };
 
-  useEffect(() => { fetchHistory(); }, []);
+  useEffect(() => {
+    fetchHistory();
+
+    // Corrected Native Notification Listener logic
+    const handleNativeNotification = (event) => {
+      const text = event.detail.text; 
+      const data = parseGPayNotification(text);
+      
+      setTransaction({
+        amount: data.amount,
+        person: data.person,
+        type: data.type,
+        note: ""
+      });
+      
+      alert("GPay Detected: ₹" + data.amount);
+    };
+
+    window.addEventListener('notificationReceived', handleNativeNotification);
+    
+    return () => window.removeEventListener('notificationReceived', handleNativeNotification);
+  }, []); // Replaced the floating brackets with correct useEffect closure
 
   const handleSave = async () => {
     if (!transaction.note || transaction.amount === "0") return alert("Details missing!");
@@ -150,7 +186,6 @@ function App() {
                 </button>
               </div>
               
-              {/* Mobile Only Simulation */}
               <div className="mt-4 flex gap-2 md:hidden">
                 <button onClick={() => simulate('paid')} className="flex-1 bg-slate-100 text-[10px] font-bold p-2 rounded-lg text-slate-500">SIM PAID</button>
                 <button onClick={() => simulate('received')} className="flex-1 bg-slate-100 text-[10px] font-bold p-2 rounded-lg text-slate-500">SIM RECV</button>
@@ -158,7 +193,7 @@ function App() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: History (Lg: 7 cols) */}
+          {/* RIGHT COLUMN: History */}
           <div className="lg:col-span-7">
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden h-full">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
@@ -190,7 +225,6 @@ function App() {
                         {item.type === 'Paid' ? '-' : '+'}₹{item.amount}
                       </p>
   
-                      {/* Delete Button - Fixed for Mobile */}
                       <button 
                         onClick={() => handleDelete(item._id)}
                         className="p-2 bg-rose-50 text-rose-500 rounded-lg active:bg-rose-100 transition-colors shadow-sm"
