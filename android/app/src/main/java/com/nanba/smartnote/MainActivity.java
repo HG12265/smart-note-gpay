@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
 
@@ -13,24 +14,35 @@ public class MainActivity extends BridgeActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             String text = intent.getStringExtra("notificationText");
-            // React app-ku text-ah anupputhu
-            getBridge().getWebView().evaluateJavascript(
-                "window.dispatchEvent(new CustomEvent('notificationReceived', { detail: { text: '" + text + "' } }));",
-                null
-            );
+            if (text != null) {
+                // React app-ku data-va anupputhu
+                getBridge().getWebView().evaluateJavascript(
+                    "window.dispatchEvent(new CustomEvent('notificationReceived', { detail: { text: '" + text + "' } }));",
+                    null
+                );
+            }
         }
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Receiver-ah register pannu
-        registerReceiver(receiver, new IntentFilter("com.nanba.smartnote.NOTIFICATION_RECEIVED"), Context.RECEIVER_EXPORTED);
+        
+        // Receiver-ah register pannu (Android 14+ compatibility kooda)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(receiver, new IntentFilter("com.nanba.smartnote.NOTIFICATION_RECEIVED"), Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(receiver, new IntentFilter("com.nanba.smartnote.NOTIFICATION_RECEIVED"));
+        }
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         super.onDestroy();
-        unregisterReceiver(receiver);
+        try {
+            unregisterReceiver(receiver);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
