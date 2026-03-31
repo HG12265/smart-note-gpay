@@ -1,28 +1,36 @@
 package com.nanba.smartnote;
 
-import android.service.notification.NotificationListenerService;
-import android.service.notification.StatusBarNotification;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
-import android.util.Log;
+import com.getcapacitor.BridgeActivity;
 
-public class NotificationService extends NotificationListenerService {
-    @Override
-    public void onNotificationPosted(StatusBarNotification sbn) {
-        String packageName = sbn.getPackageName();
-        
-        // GPay package name check
-        if (packageName.equals("com.google.android.apps.nbu.paisa")) {
-            Bundle extras = sbn.getNotification().extras;
-            String title = extras.getString("android.title");
-            String text = extras.getString("android.text");
-
-            Log.d("SmartNote", "GPay Notification: " + text);
-
-            // Send this data to our React App using a Broadcast
-            Intent intent = new Intent("com.nanba.smartnote.NOTIFICATION_RECEIVED");
-            intent.putExtra("notificationText", text);
-            sendBroadcast(intent);
+public class MainActivity extends BridgeActivity {
+    
+    private BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String text = intent.getStringExtra("notificationText");
+            // React app-ku data-va anupputhu
+            getBridge().getWebView().evaluateJavascript(
+                "window.dispatchEvent(new CustomEvent('notificationReceived', { detail: { text: '" + text + "' } }));",
+                null
+            );
         }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        // Receiver-ah register pannu
+        registerReceiver(receiver, new IntentFilter("com.nanba.smartnote.NOTIFICATION_RECEIVED"), Context.RECEIVER_EXPORTED);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(receiver);
     }
 }
